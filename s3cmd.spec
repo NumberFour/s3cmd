@@ -5,7 +5,7 @@ Name:           s3cmd
 %define realver	1.0.0
 #Version:        1.0.0_rc2
 Version:		%{realver}
-Release:        4.1
+Release:        4001.1
 License:        GPL
 BuildRoot:      %{_tmppath}/%{name}-%{realver}-build
 Group:          Networking
