@@ -76,7 +76,9 @@ class Config(object):
 	reduced_redundancy = False
 	follow_symlinks = False
 	socket_timeout = 10
-
+	website_index = "index.html"
+	website_error = None
+	
 	## Creating a singleton
 	def __new__(self, configfile = None):
 		if self._instance is None:

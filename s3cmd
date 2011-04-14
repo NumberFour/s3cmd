@@ -199,6 +199,59 @@ def cmd_bucket_create(args):
 			else:
 				raise
 
+def cmd_website_list(args):
+	s3 = S3(Config())
+	for arg in args:
+		uri = S3Uri(arg)
+		if not uri.type == "s3" or not uri.has_bucket() or uri.has_object():
+			raise ParameterError("Expecting S3 URI with just the bucket name set instead of '%s'" % arg)
+		try:
+			response = s3.website_list(uri, cfg.bucket_location)
+			if response:
+				import xml.dom.minidom
+				xml = xml.dom.minidom.parseString(response['data'])
+				output(u"Bucket '%s': website configuration:\n%s" % (uri.uri(), xml.toprettyxml()))
+			else:
+				output(u"Bucket '%s': unable to receive website configuration. None set?" % (uri.uri()))
+		except S3Error, e:
+			if S3.codes.has_key(e.info["Code"]):
+				error(S3.codes[e.info["Code"]] % uri.bucket())
+				return
+			else:
+				raise
+
+def cmd_website_create(args):
+	s3 = S3(Config())
+	for arg in args:
+		uri = S3Uri(arg)
+		if not uri.type == "s3" or not uri.has_bucket() or uri.has_object():
+			raise ParameterError("Expecting S3 URI with just the bucket name set instead of '%s'" % arg)
+		try:
+			response = s3.website_create(uri, cfg.bucket_location)
+			output(u"Bucket '%s': website configuration created." % (uri.uri()))
+		except S3Error, e:
+			if S3.codes.has_key(e.info["Code"]):
+				error(S3.codes[e.info["Code"]] % uri.bucket())
+				return
+			else:
+				raise
+
+def cmd_website_delete(args):
+	s3 = S3(Config())
+	for arg in args:
+		uri = S3Uri(arg)
+		if not uri.type == "s3" or not uri.has_bucket() or uri.has_object():
+			raise ParameterError("Expecting S3 URI with just the bucket name set instead of '%s'" % arg)
+		try:
+			response = s3.website_delete(uri, cfg.bucket_location)
+			output(u"Bucket '%s': website configuration deleted." % (uri.uri()))
+		except S3Error, e:
+			if S3.codes.has_key(e.info["Code"]):
+				error(S3.codes[e.info["Code"]] % uri.bucket())
+				return
+			else:
+				raise
+
 def cmd_bucket_delete(args):
 	def _bucket_delete_one(uri):
 		try:
@@ -1612,6 +1665,9 @@ def get_commands_list():
 	return [
 	{"cmd":"mb", "label":"Make bucket", "param":"s3://BUCKET", "func":cmd_bucket_create, "argc":1},
 	{"cmd":"rb", "label":"Remove bucket", "param":"s3://BUCKET", "func":cmd_bucket_delete, "argc":1},
+	{"cmd":"wl", "label":"Website list", "param":"s3://BUCKET", "func":cmd_website_list, "argc":1},
+	{"cmd":"wc", "label":"Website create", "param":"s3://BUCKET", "func":cmd_website_create, "argc":1},
+	{"cmd":"wd", "label":"Website delete", "param":"s3://BUCKET", "func":cmd_website_delete, "argc":1},
 	{"cmd":"ls", "label":"List objects or buckets", "param":"[s3://BUCKET[/PREFIX]]", "func":cmd_ls, "argc":0},
 	{"cmd":"la", "label":"List all object in all buckets", "param":"", "func":cmd_buckets_list_all_all, "argc":0},
 	{"cmd":"put", "label":"Put file into bucket", "param":"FILE [FILE...] s3://BUCKET[/PREFIX]", "func":cmd_object_put, "argc":2},
@@ -1752,6 +1808,9 @@ def main():
 	optparser.add_option(      "--list-md5", dest="list_md5", action="store_true", help="Include MD5 sums in bucket listings (only for 'ls' command).")
 	optparser.add_option("-H", "--human-readable-sizes", dest="human_readable_sizes", action="store_true", help="Print sizes in human readable form (eg 1kB instead of 1234).")
 
+	optparser.add_option(      "--website_error", dest="website_error", action="store", help="Name of index-document (only for [wc] command)")
+	optparser.add_option(      "--website_index", dest="website_index", action="store", help="Name of error-document (only for [wc] command)")
+	
 	optparser.add_option(      "--progress", dest="progress_meter", action="store_true", help="Display progress meter (default on TTY).")
 	optparser.add_option(      "--no-progress", dest="progress_meter", action="store_false", help="Don't display progress meter (default on non-TTY).")
 	optparser.add_option(      "--enable", dest="enable", action="store_true", help="Enable given CloudFront distribution (only for [cfmodify] command)")

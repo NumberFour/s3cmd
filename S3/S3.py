@@ -95,7 +95,8 @@ class S3(object):
 		SERVICE = 0x0100,
 		BUCKET = 0x0200,
 		OBJECT = 0x0400,
-		MASK = 0x0700,
+		WEBSITE = 0x0800,
+		MASK = 0x0F00,
 		)
 
 	operations = BidirMap(
@@ -104,6 +105,9 @@ class S3(object):
 		BUCKET_CREATE = targets["BUCKET"] | http_methods["PUT"],
 		BUCKET_LIST = targets["BUCKET"] | http_methods["GET"],
 		BUCKET_DELETE = targets["BUCKET"] | http_methods["DELETE"],
+		WEBSITE_CREATE = targets["WEBSITE"] | http_methods["PUT"],
+		WEBSITE_LIST = targets["WEBSITE"] | http_methods["GET"],
+		WEBSITE_DELETE = targets["WEBSITE"] | http_methods["DELETE"],
 		OBJECT_PUT = targets["OBJECT"] | http_methods["PUT"],
 		OBJECT_GET = targets["OBJECT"] | http_methods["GET"],
 		OBJECT_HEAD = targets["OBJECT"] | http_methods["HEAD"],
@@ -242,6 +246,57 @@ class S3(object):
 		request = self.create_request("BUCKET_LIST", bucket = uri.bucket(), extra = "?location")
 		response = self.send_request(request)
 		response['bucket-location'] = getTextFromXml(response['data'], "LocationConstraint") or "any"
+		return response
+
+	def website_list(self, uri, bucket_location = None):
+		headers = SortedDict(ignore_case = True)
+		bucket = uri.bucket()
+		body = ""
+
+		request = self.create_request("WEBSITE_LIST", bucket = bucket, extra="?website")
+		response = None
+		try:
+			response = self.send_request(request, body)
+		except S3Error, e:
+			if e.status == 404:
+				debug("Could not get ?website. Assuming none set.")
+			else:
+				raise
+		return response
+
+	def website_create(self, uri, bucket_location = None):
+		headers = SortedDict(ignore_case = True)
+		bucket = uri.bucket()
+		body = '<WebsiteConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
+		body += '  <IndexDocument>'
+		body += ('    <Suffix>%s</Suffix>' % self.config.website_index)
+		body += '  </IndexDocument>'
+		if self.config.website_error:
+			body += '  <ErrorDocument>'
+			body += ('    <Key>%s</Key>' % self.config.website_error)
+			body += '  </ErrorDocument>'
+		body += '</WebsiteConfiguration>'
+		
+		request = self.create_request("WEBSITE_CREATE", bucket = bucket, extra="?website")
+		debug("About to send request '%s' with body '%s'" % (request, body))
+		response = self.send_request(request, body)
+		debug("Received response '%s'" % (response))
+
+		return response
+
+	def website_delete(self, uri, bucket_location = None):
+		headers = SortedDict(ignore_case = True)
+		bucket = uri.bucket()
+		body = ""
+		
+		request = self.create_request("WEBSITE_DELETE", bucket = bucket, extra="?website")
+		debug("About to send request '%s' with body '%s'" % (request, body))
+		response = self.send_request(request, body)
+		debug("Received response '%s'" % (response))
+
+		if response['status'] != 204:
+			raise S3ResponseError("Expected status 204: %s" % response)
+
 		return response
 
 	def object_put(self, filename, uri, extra_headers = None, extra_label = ""):
