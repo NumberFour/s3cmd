@@ -77,7 +77,7 @@ class Config(object):
 	follow_symlinks = False
 	socket_timeout = 10
 	website_index = "index.html"
-	website_error = None
+	website_error = ""
 	
 	## Creating a singleton
 	def __new__(self, configfile = None):
