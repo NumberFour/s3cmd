@@ -271,7 +271,7 @@ class S3(object):
 		body += '  <IndexDocument>'
 		body += ('    <Suffix>%s</Suffix>' % self.config.website_index)
 		body += '  </IndexDocument>'
-		if self.config.website_error:
+		if self.config.website_error != "":
 			body += '  <ErrorDocument>'
 			body += ('    <Key>%s</Key>' % self.config.website_error)
 			body += '  </ErrorDocument>'
